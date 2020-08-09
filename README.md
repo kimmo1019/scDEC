@@ -2,7 +2,7 @@
 
 ![model](https://github.com/kimmo1019/scDEC/blob/master/model.png)
 
-scDEC is software for simultaneous deep generative modeling and clustering of single cell genomic data
+scDEC is a computational tool for single cell ATAC-seq data analysis with deep generative neural networks. scDEC enables simultaneously learning the deep embedding and clustering of the cells in an unsupervised manner.
 
 # Requirements
 - TensorFlow==1.13.1
