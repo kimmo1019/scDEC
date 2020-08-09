@@ -1,6 +1,6 @@
 # scDEC
 
-![model](https://github.com/kimmo1019/scDEC/blob/master/model.jpg)
+![model](https://github.com/kimmo1019/scDEC/blob/master/model.png)
 
 scDEC is software for simultaneous deep generative modeling and clustering of single cell genomic data
 
