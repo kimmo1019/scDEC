@@ -1,1 +1,1 @@
-Folder to host different scATAC-seq data.
+Folder to host different scATAC-seq datasets.

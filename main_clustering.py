@@ -34,14 +34,13 @@ Instructions: Roundtrip model for clustering
     Dx(.) - discriminator network in x space (latent space)
     Dy(.) - discriminator network in y space (observation space)
 '''
-class RoundtripModel(object):
-    def __init__(self, g_net, h_net, dx_net, dy_net, q_net, x_sampler, y_sampler, nb_classes, data, pool, batch_size, alpha, beta, is_train):
+class scDEC(object):
+    def __init__(self, g_net, h_net, dx_net, dy_net, x_sampler, y_sampler, nb_classes, data, pool, batch_size, alpha, beta, is_train):
         self.data = data
         self.g_net = g_net
         self.h_net = h_net
         self.dx_net = dx_net
         self.dy_net = dy_net
-        self.q_net = q_net
         self.x_sampler = x_sampler
         self.y_sampler = y_sampler
         self.nb_classes = nb_classes
@@ -225,8 +224,7 @@ class RoundtripModel(object):
                     self.evaluate(timestamp,batch_idx)
                     self.save(batch_idx)
 
-                #ratio = 0.
-                tol = 0.002
+                tol = 0.02
                 estimated_weights = self.estimate_weights(use_kmeans=False)
                 weights = ratio*weights + (1-ratio)*estimated_weights
                 weights = weights/np.sum(weights)
@@ -241,7 +239,6 @@ class RoundtripModel(object):
                 print('Reach a stable cluster')
                 self.evaluate(timestamp,batch_idx,True)
                 sys.exit()
-
 
     def adjust_tiny_weights(self,weights,tol):
         idx_less = np.where(weights<tol)[0]
@@ -273,7 +270,7 @@ class RoundtripModel(object):
         nmi = normalized_mutual_info_score(label_y, label_infer)
         ari = adjusted_rand_score(label_y, label_infer)
         #self.cluster_heatmap(batch_idx, label_infer, label_y)
-        print('RTM: NMI = {}, ARI = {}, Purity = {}'.format(nmi,ari,purity))
+        print('model: NMI = {}, ARI = {}, Purity = {}'.format(nmi,ari,purity))
         f = open('%s/log.txt'%self.save_dir,'a+')
         f.write('%.4f\t%.4f\t%.4f\t%d\n'%(nmi,ari,purity,batch_idx))
         f.close()
@@ -399,34 +396,24 @@ if __name__ == '__main__':
     timestamp = args.timestamp
     is_train = args.train
     g_net = model.Generator(input_dim=x_dim,output_dim = y_dim,name='g_net',nb_layers=10,nb_units=512,concat_every_fcl=False)
-    #the last layer of G is linear without activation func, maybe add a relu
     h_net = model.Encoder(input_dim=y_dim,output_dim = x_dim+nb_classes,feat_dim=x_dim,name='h_net',nb_layers=10,nb_units=256)
     dx_net = model.Discriminator(input_dim=x_dim,name='dx_net',nb_layers=2,nb_units=256)
     dy_net = model.Discriminator(input_dim=y_dim,name='dy_net',nb_layers=2,nb_units=256)
-    q_net = model.MutualNet(output_dim=nb_classes, name='mutual_net',nb_units=256)
     pool = util.DataPool(10)
-    #np.random.seed(0) 
-    #random.seed(0)
-    #tf.set_random_seed(0)
 
-    #xs = util.Mixture_sampler_v2(nb_classes=nb_classes,N=10000,dim=x_dim,sd=1)
     xs = util.Mixture_sampler(nb_classes=nb_classes,N=10000,dim=x_dim,sd=1)
-    #ys = util.DataSampler() #scRNA-seq data
-    #ys = util.RA4_Sampler('scrna')
     ys = util.scATAC_Sampler(data,y_dim)
-    #ys = util.GMM_sampler(N=10000,n_components=nb_classes,dim=y_dim,sd=8)
 
-
-    RTM = RoundtripModel(g_net, h_net, dx_net, dy_net, q_net, xs, ys, nb_classes, data, pool, batch_size, alpha, beta, is_train)
+    model = scDEC(g_net, h_net, dx_net, dy_net, xs, ys, nb_classes, data, pool, batch_size, alpha, beta, is_train)
 
     if args.train:
-        RTM.train(nb_batches=nb_batches, patience=patience)
+        model.train(nb_batches=nb_batches, patience=patience)
     else:
         print('Attempting to Restore Model ...')
         if timestamp == '':
-            RTM.load(pre_trained=True)
+            model.load(pre_trained=True)
             timestamp = 'pre-trained'
         else:
-            RTM.load(pre_trained=False, timestamp = timestamp, batch_idx = nb_batches-1)
+            model.load(pre_trained=False, timestamp = timestamp, batch_idx = nb_batches-1)
             
             
