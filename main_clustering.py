@@ -372,7 +372,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='model')
     parser.add_argument('--K', type=int, default=11)
     parser.add_argument('--dx', type=int, default=10)
-    parser.add_argument('--dy', type=int, default=10)
+    parser.add_argument('--dy', type=int, default=20)
     parser.add_argument('--bs', type=int, default=64)
     parser.add_argument('--nb_batches', type=int, default=50000)
     parser.add_argument('--patience', type=int, default=20)
