@@ -40,11 +40,11 @@ For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py --
 
 After model training, the results will be marked by a unique timestamp YYYYMMDD_HHMMSS. This timestamp records the exact time when you run the script.
 
- 1) `log` files and predicted assignmemnts `data_at_xxx.npz` (xxx denotes different epoch) can be found at folder `results/dataset/cluster_YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`.
+ 1) `log` files and predicted assignmemnts `data_at_xxx.npz` (xxx denotes different epoch) can be found at folder `results/dataset/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`.
  
- 2) Model weights will be saved at folder `checkpoint/cluster_YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`. 
+ 2) Model weights will be saved at folder `checkpoint/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`. 
  
- 3) The training loss curves were recorded at folder `graph/cluster_YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`, which can be visualized using TensorBoard.
+ 3) The training loss curves were recorded at folder `graph/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`, which can be visualized using TensorBoard.
 
  Next, one can run `python eval.py --data --timestamp --latent --vis` for visulization the latent features and save the latent feature matrix. 
 

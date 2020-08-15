@@ -22,15 +22,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 tf.set_random_seed(0)
 '''
-using wgan-gp
-Instructions: Roundtrip model for clustering
-    x,y - data drawn from base density and observation data (target density)
-    y_  - learned distribution by G(.), namely y_=G(x)
-    x_  - learned distribution by H(.), namely x_=H(y)
+Instructions: scDEC model
+    x,y - data drawn from base density (e.g., Gaussian) and observation data
+    x_onehot - data drawn from caltegrory distribution
+    y_  - Generated data where y_=G(x,x_onehot)
+    x_latent_,x_onehot_  -  Embedding and inferred clustering label where x_latent_, x_onehot_=H(y)
     y__ - reconstructed distribution, y__ = G(H(y))
     x__ - reconstructed distribution, x__ = H(G(y))
-    G(.)  - generator network for mapping x space to y space
-    H(.)  - generator network for mapping y space to x space
+    G(.)  - generator network for mapping latent space to data space
+    H(.)  - generator network for mapping data space to latent space (embedding) and clustering, simultaneously
     Dx(.) - discriminator network in x space (latent space)
     Dy(.) - discriminator network in y space (observation space)
 '''
@@ -159,12 +159,12 @@ class scDEC(object):
         self.d_merged_summary = tf.summary.merge([self.dx_loss_summary,self.dy_loss_summary])
 
         #graph path for tensorboard visualization
-        self.graph_dir = 'graph/{}/cluster_{}_x_dim={}_y_dim={}_alpha={}_beta={}_ratio={}'.format(self.data,self.timestamp,self.x_dim, self.y_dim, self.alpha, self.beta, ratio)
+        self.graph_dir = 'graph/{}/{}_x_dim={}_y_dim={}_alpha={}_beta={}_ratio={}'.format(self.data,self.timestamp,self.x_dim, self.y_dim, self.alpha, self.beta, ratio)
         if not os.path.exists(self.graph_dir) and is_train:
             os.makedirs(self.graph_dir)
         
         #save path for saving predicted data
-        self.save_dir = 'results/{}/cluster_{}_x_dim={}_y_dim={}_alpha={}_beta={}_ratio={}'.format(self.data,self.timestamp,self.x_dim, self.y_dim, self.alpha, self.beta, ratio)
+        self.save_dir = 'results/{}/{}_x_dim={}_y_dim={}_alpha={}_beta={}_ratio={}'.format(self.data,self.timestamp,self.x_dim, self.y_dim, self.alpha, self.beta, ratio)
         if not os.path.exists(self.save_dir) and is_train:
             os.makedirs(self.save_dir)
 
@@ -362,7 +362,7 @@ class scDEC(object):
                 print('Best Timestamp not provided.')
                 checkpoint_dir = ''
             else:
-                checkpoint_dir = 'checkpoint/cluster_{}_{}_x_dim={}_y_dim={}_alpha={}_beta={}'.format(self.timestamp,self.data,self.x_dim, self.y_dim, self.alpha, self.beta)
+                checkpoint_dir = 'checkpoint/{}_{}_x_dim={}_y_dim={}_alpha={}_beta={}'.format(self.timestamp,self.data,self.x_dim, self.y_dim, self.alpha, self.beta)
                 self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model.ckpt-%d'%batch_idx))
                 print('Restored model weights.')
 
