@@ -46,7 +46,16 @@ After model training, the results will be marked by a unique timestamp YYYYMMDD_
  
  3) The training loss curves were recorded at folder `graph/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`, which can be visualized using TensorBoard.
 
- Next, one can run `python eval.py --data --timestamp --latent --vis` for visulization the latent features and save the latent feature matrix. 
+ Next, one can run `python eval.py --data --timestamp --epoch` 
+ 
+```python
+python eval.py --data [dataset] --timestamp [timestamp] --epoch [epoch]
+[dataset]  -  the name of the dataset (e.g.,Splenocyte)
+[timestamp]  -  the timestamp of the experiment you ran
+[epoch]  -  specify to use the results of which epoch (it can be ignored)
+```
+
+The visulization plot and the latent feature matrix will be saved in `results/dataset/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`
 
  
 ## Contact

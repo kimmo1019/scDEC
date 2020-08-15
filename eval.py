@@ -71,22 +71,52 @@ def plot_embedding(X, labels, classes=None, method='tSNE', cmap='tab20', figsize
     if save:
         plt.savefig(save, format='png', bbox_inches='tight',dpi=dpi)
 
+def cluster_eval(labels_true,labels_infer):
+    purity = metric.compute_purity(labels_infer, labels_true)
+    nmi = normalized_mutual_info_score(labels_true, labels_infer)
+    ari = adjusted_rand_score(labels_true, labels_infer)
+    homogeneity = homogeneity_score(labels_true, labels_infer)
+    ami = adjusted_mutual_info_score(labels_true, labels_infer)
+    #print('NMI = {}, ARI = {}, Purity = {},AMI = {}, Homogeneity = {}'.format(nmi,ari,purity,ami,homogeneity))
+    return nmi,ari,homogeneity
+
+def get_best_epoch(exp_dir, data, measurement='NMI'):
+    results = []
+    for each in os.listdir('results/%s/%s'%(data,exp_dir)):
+        if each.startswith('data'):
+            data = np.load('results/%s/%s/%s'%(data,exp_dir,each))
+            data_x_onehot_,label_y = data['arr_1'],data['arr_2']
+            label_infer = np.argmax(data_x_onehot_, axis=1)
+            nmi,ari,homo = cluster_eval(label_y,label_infer)
+            results.append([each,nmi,ari,homo])
+    results.sort(key=lambda a:-a[1])
+    return results[0][0]
+
+def save_embedding(emb_feat,labels,save,sep='\t'):
+    data_pd = pd.DataFrame(emb_feat,index = labels)
+    data_pd.to_csv(save,sep=sep)
+
+
 if __name__ == '__main__':
+
         parser = argparse.ArgumentParser(description='Simultaneous deep generative modeling and clustering of single cell genomic data')
-        parser.add_argument('--dataset', '-d', type=str, help='which dataset')
+        parser.add_argument('--data', '-d', type=str, help='which dataset')
         parser.add_argument('--timestamp', '-t', type=str, help='timestamp')
         parser.add_argument('--epoch', '-e', type=int, help='which epoch')
         parser.add_argument('--save', '-s', type=str, help='save latent visualization plot (e.g., t-SNE)')
         args = parser.parse_args()
 
+        exp_dir = [item for item in os.listdir('results/%s'%args.data) if item.startswith(args.timestamp)][0]
+
         if args.epoch is None:
-            epoch = get_epoch()
+            epoch = get_best_epoch(exp_dir,args.data,'NMI')
         else:
             epoch = args.epoch
-        exp_dir = [item for item in os.listdir('results/%s'%args.dataset) if item.startswith(args.timestamp)][0]
+    
         data = np.load('results/%s/data_at_%d.npz'%(exp_dir,epoch))
         embedding, label_infered_onehot = data['arr_0'],data['arr_1'],data['arr_2']
         label_infered = np.argmax(label_infered_onehot, axis=1)
-        label_true = [item.strip() for item  in open('datasets/scATAC/%s/label.txt'%args.dataset).readlines()]
-        plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.dataset,dpi=600)
+        label_true = [item.strip() for item  in open('datasets/scATAC/%s/label.txt'%args.data).readlines()]
+        save_embedding(embedding,label_true,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
+        plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data,dpi=600)
 
