@@ -80,25 +80,34 @@ def cluster_eval(labels_true,labels_infer):
     #print('NMI = {}, ARI = {}, Purity = {},AMI = {}, Homogeneity = {}'.format(nmi,ari,purity,ami,homogeneity))
     return nmi,ari,homogeneity
 
-def get_best_epoch(exp_dir, data, measurement='NMI'):
+def get_best_epoch(exp_dir, dataset, measurement='NMI'):
     results = []
-    for each in os.listdir('results/%s/%s'%(data,exp_dir)):
+    for each in os.listdir('results/%s/%s'%(dataset,exp_dir)):
         if each.startswith('data'):
-            data = np.load('results/%s/%s/%s'%(data,exp_dir,each))
+            #print('results/%s/%s/%s'%(dataset,exp_dir,each))
+            data = np.load('results/%s/%s/%s'%(dataset,exp_dir,each))
             data_x_onehot_,label_y = data['arr_1'],data['arr_2']
             label_infer = np.argmax(data_x_onehot_, axis=1)
             nmi,ari,homo = cluster_eval(label_y,label_infer)
             results.append([each,nmi,ari,homo])
-    results.sort(key=lambda a:-a[1])
+    if measurement == 'NMI':
+        results.sort(key=lambda a:-a[1])
+    elif measurement == 'ARI':
+        results.sort(key=lambda a:-a[2])
+    elif measurement == 'HOMO':
+        results.sort(key=lambda a:-a[3])
+    else:
+        print('Wrong indicated metric')
+        sys.exit()
     return results[0][0]
 
-def save_embedding(emb_feat,labels,save,sep='\t'):
-    data_pd = pd.DataFrame(emb_feat,index = labels)
+def save_embedding(emb_feat,save,sep='\t'):
+    index = ['cell%d'%(i+1) for i in range(emb_feat.shape[0])]
+    columns = ['feat%d'%(i+1) for i in range(emb_feat.shape[1])]
+    data_pd = pd.DataFrame(emb_feat,index = index,coloums=columns)
     data_pd.to_csv(save,sep=sep)
 
-
 if __name__ == '__main__':
-
         parser = argparse.ArgumentParser(description='Simultaneous deep generative modeling and clustering of single cell genomic data')
         parser.add_argument('--data', '-d', type=str, help='which dataset')
         parser.add_argument('--timestamp', '-t', type=str, help='timestamp')
@@ -109,14 +118,14 @@ if __name__ == '__main__':
         exp_dir = [item for item in os.listdir('results/%s'%args.data) if item.startswith(args.timestamp)][0]
 
         if args.epoch is None:
-            epoch = get_best_epoch(exp_dir,args.data,'NMI')
+            epoch = get_best_epoch(exp_dir,args.data,'ARI')
         else:
             epoch = args.epoch
-    
-        data = np.load('results/%s/data_at_%d.npz'%(exp_dir,epoch))
-        embedding, label_infered_onehot = data['arr_0'],data['arr_1'],data['arr_2']
+
+        data = np.load('results/%s/%s/%s'%(args.data,exp_dir,epoch))
+        embedding, label_infered_onehot = data['arr_0'],data['arr_1']
         label_infered = np.argmax(label_infered_onehot, axis=1)
-        label_true = [item.strip() for item  in open('datasets/scATAC/%s/label.txt'%args.data).readlines()]
-        save_embedding(embedding,label_true,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
-        plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data,dpi=600)
+        label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
+        save_embedding(embedding,save='results/%s/%s/scDEC_embedding.csv'%(args.data,exp_dir),sep='\t')
+        plot_embedding(embedding,label_true,save='results/%s/%s/scDEC_embedding.png'%(args.data,exp_dir),dpi=600)
 

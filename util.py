@@ -74,8 +74,8 @@ class scATAC_Sampler(object):
     def __init__(self,name='GMvsHL',dim=20):
         self.name = name
         self.dim = dim
-        X = pd.read_csv('datasets/scATAC/%s/sc_mat.txt'%name,sep='\t',header=0,index_col=[0]).values
-        labels = [item.strip() for item in open('datasets/scATAC/%s/label.txt'%name).readlines()]
+        X = pd.read_csv('datasets/%s/sc_mat.txt'%name,sep='\t',header=0,index_col=[0]).values
+        labels = [item.strip() for item in open('datasets/%s/label.txt'%name).readlines()]
         uniq_labels = list(np.unique(labels))
         print(uniq_labels)
         Y = np.array([uniq_labels.index(item) for item in labels])
@@ -89,10 +89,8 @@ class scATAC_Sampler(object):
         #PCA transformation
         pca = PCA(n_components=dim).fit(X)
         X = pca.transform(X)
-        print X.shape
         self.correlation(X,Y)
         self.X,self.Y = X, Y
-        print self.X.shape,self.Y.shape,np.unique(self.Y)
         self.total_size = len(self.Y)
 
     def filter_peaks(self,X,Y,ratio):

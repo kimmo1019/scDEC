@@ -181,6 +181,7 @@ class scDEC(object):
         self.sess.run(tf.global_variables_initializer())
         self.summary_writer=tf.summary.FileWriter(self.graph_dir,graph=tf.get_default_graph())
         batches_per_eval = 100
+        #batches_per_eval = 50
         #batches_per_eval = int(len(data_y_train)/self.batch_size)
         start_time = time.time()
         weights = np.ones(self.nb_classes, dtype=np.float64) / float(self.nb_classes)
@@ -217,12 +218,8 @@ class scDEC(object):
                     g_loss, h_loss, g_h_loss, dx_loss, dy_loss, d_loss))                 
 
             if (batch_idx+1) % batches_per_eval == 0:
-                if batch_idx+1 == nb_batches:
-                    self.evaluate(timestamp,batch_idx,True)
-                    self.save(batch_idx)
-                else:
-                    self.evaluate(timestamp,batch_idx)
-                    self.save(batch_idx)
+                self.evaluate(timestamp,batch_idx)
+                self.save(batch_idx)
 
                 tol = 0.02
                 estimated_weights = self.estimate_weights(use_kmeans=False)
@@ -233,11 +230,11 @@ class scDEC(object):
                 if np.min(weights)<tol:
                     weights = self.adjust_tiny_weights(weights,tol)
                 last_weights = copy.copy(weights)
-                print diff_weights,weights
+                #print diff_weights,weights
             
             if len(diff_history)>100 and np.mean(diff_history[-10:]) < 5e-3:
                 print('Reach a stable cluster')
-                self.evaluate(timestamp,batch_idx,True)
+                self.evaluate(timestamp,batch_idx)
                 sys.exit()
 
     def adjust_tiny_weights(self,weights,tol):
@@ -269,46 +266,10 @@ class scDEC(object):
         purity = metric.compute_purity(label_infer, label_y)
         nmi = normalized_mutual_info_score(label_y, label_infer)
         ari = adjusted_rand_score(label_y, label_infer)
-        #self.cluster_heatmap(batch_idx, label_infer, label_y)
-        print('model: NMI = {}, ARI = {}, Purity = {}'.format(nmi,ari,purity))
+        #print('scDEC: NMI = {}, ARI = {}, Purity = {}'.format(nmi,ari,purity))
         f = open('%s/log.txt'%self.save_dir,'a+')
-        f.write('%.4f\t%.4f\t%.4f\t%d\n'%(nmi,ari,purity,batch_idx))
+        f.write('NMI = {}\tARI = {}\tPurity = {}\t batch_idx = {}\n'.format(nmi,ari,purity,batch_idx))
         f.close()
-        km = KMeans(n_clusters=nb_classes, random_state=0).fit(data_x_)
-        label_kmeans = km.labels_
-        purity = metric.compute_purity(label_kmeans, label_y)
-        nmi = normalized_mutual_info_score(label_y, label_kmeans)
-        ari = adjusted_rand_score(label_y, label_kmeans)
-        print('Latent-kmeans: NMI = {}, ARI = {}, Purity = {}'.format(nmi,ari,purity))
-        f = open('%s/log.txt'%self.save_dir,'a+')
-        f.write('Latent-kmeans\t%.4f\t%.4f\t%.4f\t%d\n'%(nmi,ari,purity,batch_idx))
-        f.close()
-        #k-means
-        if run_kmeans:
-            km = KMeans(n_clusters=nb_classes, random_state=0).fit(data_y)
-            label_kmeans = km.labels_
-            purity = metric.compute_purity(label_kmeans, label_y)
-            nmi = normalized_mutual_info_score(label_y, label_kmeans)
-            ari = adjusted_rand_score(label_y, label_kmeans)
-            print('K-means: NMI = {}, ARI = {}, Purity = {}'.format(nmi,ari,purity))
-            f = open('%s/log.txt'%self.save_dir,'a+')
-            f.write('%.4f\t%.4f\t%.4f\n'%(nmi,ari,purity))
-            f.close() 
-    
-    def cluster_heatmap(self,batch_idx,label_pre,label_true):
-        assert len(label_pre)==len(label_true)
-        confusion_mat = np.zeros((self.nb_classes,self.nb_classes))
-        for i in range(len(label_true)):
-            confusion_mat[label_pre[i]][label_true[i]] += 1
-        #columns=[item for item in range(1,11)]
-        #index=[item for item in range(1,11)]
-        #df = pd.DataFrame(confusion_mat,columns=columns,index=index)
-        plt.figure()
-        df = pd.DataFrame(confusion_mat)
-        sns.heatmap(df,annot=True, cmap="Blues")
-        plt.savefig('%s/heatmap_%d.png'%(self.save_dir,batch_idx))
-        plt.close()
-
 
     #predict with y_=G(x)
     def predict_y(self, x, x_onehot, bs=256):
@@ -378,7 +339,7 @@ if __name__ == '__main__':
     parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--alpha', type=float, default=10.0)
     parser.add_argument('--beta', type=float, default=10.0)
-    parser.add_argument('--ratio', type=float, default=0.5)
+    parser.add_argument('--ratio', type=float, default=0.0)
     parser.add_argument('--timestamp', type=str, default='')
     parser.add_argument('--train', type=bool, default=False)
     args = parser.parse_args()
