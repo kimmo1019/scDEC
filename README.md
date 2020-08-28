@@ -61,6 +61,8 @@ The visulization plot and the latent feature matrix will be saved in the same `r
 
 [Tutorial Splenocyte](https://github.com/kimmo1019/scDEC/wiki/Splenocyte) Run scDEC on Splenocyte dataset (k=12, 3166 cells)
 
+[Tutorial Full mouse atlas](https://github.com/kimmo1019/scDEC/wiki/Full-Mouse-atlas) Run scDEC on full Mouse atlas dataset (k=40, 81173 cells)
+
  
 ## Contact
 
