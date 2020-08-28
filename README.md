@@ -55,7 +55,11 @@ python eval.py --data [dataset] --timestamp [timestamp] --epoch [epoch]
 [epoch]  -  specify to use the results of which epoch (it can be ignored)
 ```
 
-The visulization plot and the latent feature matrix will be saved in `results/dataset/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`
+The visulization plot and the latent feature matrix will be saved in the same `results` folder.
+
+## Tutorial
+
+[Tutorial Splenocyte](https://github.com/kimmo1019/scDEC/wiki/Splenocyte) Run scDEC on Splenocyte dataset (k=12, 3166 cells)
 
  
 ## Contact

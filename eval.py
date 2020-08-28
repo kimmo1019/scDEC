@@ -107,6 +107,12 @@ def save_embedding(emb_feat,save,sep='\t'):
     data_pd = pd.DataFrame(emb_feat,index = index,coloums=columns)
     data_pd.to_csv(save,sep=sep)
 
+def save_clustering(label,save):
+    f = open(save,'w')
+    cluster_res = [str(item) for item in label]
+    f.write('\n'.join(cluster_res))
+    f.close()
+
 if __name__ == '__main__':
         parser = argparse.ArgumentParser(description='Simultaneous deep generative modeling and clustering of single cell genomic data')
         parser.add_argument('--data', '-d', type=str, help='which dataset')
@@ -126,6 +132,8 @@ if __name__ == '__main__':
         embedding, label_infered_onehot = data['arr_0'],data['arr_1']
         label_infered = np.argmax(label_infered_onehot, axis=1)
         label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
+        save_clustering(label_infered,save='results/%s/%s/scDEC_cluster.txt'%(args.data,exp_dir))
         save_embedding(embedding,save='results/%s/%s/scDEC_embedding.csv'%(args.data,exp_dir),sep='\t')
         plot_embedding(embedding,label_true,save='results/%s/%s/scDEC_embedding.png'%(args.data,exp_dir),dpi=600)
+    
 
