@@ -78,7 +78,7 @@ The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent 
  
 ## Contact
 
-Also Feel free to open an issue in Github or contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem in Roundtrip.
+Also Feel free to open an issue in Github or contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem in running scDEC.
 
 ## License
 
