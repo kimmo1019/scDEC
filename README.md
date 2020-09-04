@@ -36,22 +36,25 @@ python main_clustering.py --data [dataset] --K [nb_of_clusters] --dx [x_dim] --d
 [is_train] - indicate training from scratch or using pretrained model
 
 ```
-For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data InSilico --K 6 --dx 9 --dy 20` to cluster the scATAC-seq data with pretrained model.
+For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data Splenocyte --K 12 --dx 8 --dy 20` to cluster the scATAC-seq data with pretrained model.
 
 ### Model evaluation
 
 If the pretrained model was used, the clustering results in the last step will be directly saved in `results/[dataset]/data_pre.npz` where `dataset` is the name of the scATAC-seq dataset.
 
-Then one can run `python eval.py --data [dataset]` to analyze the clustering results. The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent feature matrix (`scDEC_embedding.csv`), inferred cluster label (`scDEC_cluster.txt`) will be saved in the `results/[dataset]` folder.
+Then one can run `python eval.py --data [dataset]` to analyze the clustering results. 
+For an example, one can run `python eval.py --data Splenocyte`
+
+The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent feature matrix (`scDEC_embedding.csv`), inferred cluster label (`scDEC_cluster.txt`) will be saved in the `results/[dataset]` folder.
 
 
 If scDEC model was trained from scratch, the results will be marked by a unique timestamp YYYYMMDD_HHMMSS. This timestamp records the exact time when you run the script.
 
- 1) `log` files and predicted assignmemnts `data_at_xxx.npz` (xxx denotes different epoch) can be found at folder `results/[dataset]/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`.
+ 1) `log` files and predicted assignmemnts `data_at_xxx.npz` (xxx denotes different epoch) can be found at folder `results/[dataset]/YYYYMMDD_HHMMSS_x_dim=8_y_dim=20_alpha=10.0_beta=10.0_ratio=0.2`.
  
- 2) Model weights will be saved at folder `checkpoint/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`. 
+ 2) Model weights will be saved at folder `checkpoint/YYYYMMDD_HHMMSS_x_dim=8_y_dim=20_alpha=10.0_beta=10.0_ratio=0.2`. 
  
- 3) The training loss curves were recorded at folder `graph/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`, which can be visualized using TensorBoard.
+ 3) The training loss curves were recorded at folder `graph/YYYYMMDD_HHMMSS_x_dim=8_y_dim=20_alpha=10.0_beta=10.0_ratio=0.2`, which can be visualized using TensorBoard.
 
  Next, one can run 
  
@@ -61,6 +64,7 @@ python eval.py --data [dataset] --timestamp [timestamp] --epoch [epoch]
 [timestamp]  -  the timestamp of the experiment you ran
 [epoch]  -  specify to use the results of which epoch (it can be ignored)
 ```
+
 
 The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent feature matrix (`scDEC_embedding.csv`), inferred cluster label (`scDEC_cluster.txt`) will be saved in the same `results` folder as 1).
 
