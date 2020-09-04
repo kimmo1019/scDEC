@@ -25,28 +25,35 @@ Several scATAC-seq datasets have been prepared as the input of scDEC model. Thes
 
 ### Model training
 
-scDEC is an unsupervised learning model which is easy to run. One can run 
+scDEC is an unsupervised learning model for analyzing scATAC-seq data. One can run 
 
 ```python
-python main_clustering.py --data [dataset] --K [nb_of_clusters] --dx [x_dim] --dy [y_dim] 
+python main_clustering.py --data [dataset] --K [nb_of_clusters] --dx [x_dim] --dy [y_dim] --train [is_train]
 [dataset]  -  the name of the dataset (e.g.,Splenocyte)
-[nb_of_clusters]  -  the number of clusters (e.g., 10)
+[nb_of_clusters]  -  the number of clusters (e.g., 6)
 [x_dim]  -  the dimension of latent space (continous part)
 [y_dim]  -  the dimension of PCA (defalt: 20)
+[is_train] - indicate training from scratch or using pretrained model
+
 ```
-For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py --data InSilico --K 6 --dx 9 --dy 20`.
+For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data InSilico --K 6 --dx 9 --dy 20` to cluster the scATAC-seq data with pretrained model.
 
 ### Model evaluation
 
-After model training, the results will be marked by a unique timestamp YYYYMMDD_HHMMSS. This timestamp records the exact time when you run the script.
+If the pretrained model was used, the clustering results in the last step will be directly saved in `results/[dataset]/data_pre.npz` where `dataset` is the name of the scATAC-seq dataset.
 
- 1) `log` files and predicted assignmemnts `data_at_xxx.npz` (xxx denotes different epoch) can be found at folder `results/dataset/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`.
+Then one can run `python eval.py --data [dataset]` to analyze the clustering results. The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent feature matrix (`scDEC_embedding.csv`), inferred cluster label (`scDEC_cluster.txt`) will be saved in the `results/[dataset]` folder.
+
+
+If scDEC model was trained from scratch, the results will be marked by a unique timestamp YYYYMMDD_HHMMSS. This timestamp records the exact time when you run the script.
+
+ 1) `log` files and predicted assignmemnts `data_at_xxx.npz` (xxx denotes different epoch) can be found at folder `results/[dataset]/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`.
  
  2) Model weights will be saved at folder `checkpoint/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`. 
  
  3) The training loss curves were recorded at folder `graph/YYYYMMDD_HHMMSS_x_dim=10_y_dim=20_alpha=10.0_beta=10.0_ratio=0.0`, which can be visualized using TensorBoard.
 
- Next, one can run `python eval.py --data --timestamp --epoch` 
+ Next, one can run 
  
 ```python
 python eval.py --data [dataset] --timestamp [timestamp] --epoch [epoch]
@@ -55,7 +62,8 @@ python eval.py --data [dataset] --timestamp [timestamp] --epoch [epoch]
 [epoch]  -  specify to use the results of which epoch (it can be ignored)
 ```
 
-The visulization plot and the latent feature matrix will be saved in the same `results` folder.
+The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent feature matrix (`scDEC_embedding.csv`), inferred cluster label (`scDEC_cluster.txt`) will be saved in the same `results` folder as 1).
+
 
 ## Tutorial
 
