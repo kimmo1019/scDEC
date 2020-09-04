@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style("whitegrid", {'axes.grid' : False})
 
-def plot_embedding(X, labels, classes=None, method='tSNE', cmap='tab20', figsize=(8, 8), markersize=15, dpi=600,marker=None,
+def plot_embedding(X, labels, classes=None, method='tSNE', cmap='tab20', figsize=(8, 8), markersize=15, dpi=300,marker=None,
                    return_emb=False, save=False, save_emb=False, show_legend=True, show_axis_label=True, **legend_params):
     if marker is not None:
         X = np.concatenate([X, marker], axis=0)
@@ -99,18 +99,19 @@ def get_best_epoch(exp_dir, dataset, measurement='NMI'):
     else:
         print('Wrong indicated metric')
         sys.exit()
+    print('NMI = {}\tARI = {}\tHomogeneity = {}'.format(results[0][1],results[0][2],results[0][3]))
     return results[0][0]
 
 def save_embedding(emb_feat,save,sep='\t'):
     index = ['cell%d'%(i+1) for i in range(emb_feat.shape[0])]
     columns = ['feat%d'%(i+1) for i in range(emb_feat.shape[1])]
-    data_pd = pd.DataFrame(emb_feat,index = index,coloums=columns)
+    data_pd = pd.DataFrame(emb_feat,index = index,columns=columns)
     data_pd.to_csv(save,sep=sep)
 
 def save_clustering(label,save):
     f = open(save,'w')
-    cluster_res = [str(item) for item in label]
-    f.write('\n'.join(cluster_res))
+    res_list = ['cell%d\t%s'%(i,str(item)) for i,item in enumerate(label)]
+    f.write('\n'.join(res_list))
     f.close()
 
 if __name__ == '__main__':
@@ -118,22 +119,32 @@ if __name__ == '__main__':
         parser.add_argument('--data', '-d', type=str, help='which dataset')
         parser.add_argument('--timestamp', '-t', type=str, help='timestamp')
         parser.add_argument('--epoch', '-e', type=int, help='which epoch')
+        parser.add_argument('--train', type=bool, default=False)
         parser.add_argument('--save', '-s', type=str, help='save latent visualization plot (e.g., t-SNE)')
         args = parser.parse_args()
 
-        exp_dir = [item for item in os.listdir('results/%s'%args.data) if item.startswith(args.timestamp)][0]
-
-        if args.epoch is None:
-            epoch = get_best_epoch(exp_dir,args.data,'ARI')
+        if args.train:
+            exp_dir = [item for item in os.listdir('results/%s'%args.data) if item.startswith(args.timestamp)][0]
+            if args.epoch is None:
+                epoch = get_best_epoch(exp_dir,args.data,'ARI')
+            else:
+                epoch = args.epoch
+            data = np.load('results/%s/%s/%s'%(args.data,exp_dir,epoch))
+            embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+            label_infered = np.argmax(label_infered_onehot, axis=1)
+            label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
+            save_clustering(label_infered,save='results/%s/%s/scDEC_cluster.txt'%(args.data,exp_dir))
+            save_embedding(embedding,save='results/%s/%s/scDEC_embedding.csv'%(args.data,exp_dir),sep='\t')
+            plot_embedding(embedding,label_true,save='results/%s/%s/scDEC_embedding.png'%(args.data,exp_dir))
         else:
-            epoch = args.epoch
+            data = np.load('results/%s/data_pre.npz'%args.data)
+            embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+            label_infered = np.argmax(label_infered_onehot, axis=1)
+            label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
+            save_clustering(label_infered,save='results/%s/scDEC_cluster.txt'%args.data)
+            save_embedding(embedding,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
+            plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data)
 
-        data = np.load('results/%s/%s/%s'%(args.data,exp_dir,epoch))
-        embedding, label_infered_onehot = data['arr_0'],data['arr_1']
-        label_infered = np.argmax(label_infered_onehot, axis=1)
-        label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
-        save_clustering(label_infered,save='results/%s/%s/scDEC_cluster.txt'%(args.data,exp_dir))
-        save_embedding(embedding,save='results/%s/%s/scDEC_embedding.csv'%(args.data,exp_dir),sep='\t')
-        plot_embedding(embedding,label_true,save='results/%s/%s/scDEC_embedding.png'%(args.data,exp_dir),dpi=600)
+
     
 

@@ -31,7 +31,7 @@ sns.set_style("whitegrid", {'axes.grid' : False})
 matplotlib.rc('xtick', labelsize=20) 
 matplotlib.rc('ytick', labelsize=20) 
 matplotlib.rcParams.update({'font.size': 22})
-
+np.random.seed(0)
 
 def compute_inertia(a, X, norm=True):
     if norm:
@@ -77,9 +77,8 @@ class scATAC_Sampler(object):
         X = pd.read_csv('datasets/%s/sc_mat.txt'%name,sep='\t',header=0,index_col=[0]).values
         labels = [item.strip() for item in open('datasets/%s/label.txt'%name).readlines()]
         uniq_labels = list(np.unique(labels))
-        print(uniq_labels)
         Y = np.array([uniq_labels.index(item) for item in labels])
-        X,Y = self.filter_cells(X,Y,min_peaks=10)
+        #X,Y = self.filter_cells(X,Y,min_peaks=10)
         X,Y = self.filter_peaks(X,Y,ratio=0.03)
         #TF-IDF transformation
         nfreqs = 1.0 * X / np.tile(np.sum(X,axis=0), (X.shape[0],1))
@@ -87,11 +86,13 @@ class scATAC_Sampler(object):
         X = X.T #(cells, peaks)
         X = MinMaxScaler().fit_transform(X)
         #PCA transformation
-        pca = PCA(n_components=dim).fit(X)
+        #pca = PCA(n_components=dim, random_state=100).fit(X)
+        pca = PCA(n_components=dim, random_state=3456).fit(X)
         X = pca.transform(X)
         self.correlation(X,Y)
-        self.X,self.Y = X, Y
+        self.X, self.Y = X, Y
         self.total_size = len(self.Y)
+
 
     def filter_peaks(self,X,Y,ratio):
         ind = np.sum(X>0,axis=1) > len(Y)*ratio
@@ -102,7 +103,7 @@ class scATAC_Sampler(object):
 
     def correlation(self,X,Y,heatmap=False):
         nb_classes = len(set(Y))
-        print nb_classes
+        print(nb_classes)
         km = KMeans(n_clusters=nb_classes,random_state=0).fit(X)
         label_kmeans = km.labels_
         purity = metric.compute_purity(label_kmeans, Y)
@@ -111,29 +112,7 @@ class scATAC_Sampler(object):
         homogeneity = homogeneity_score(Y, label_kmeans)
         ami = adjusted_mutual_info_score(Y, label_kmeans)
         print('NMI = {}, ARI = {}, Purity = {},AMI = {}, Homogeneity = {}'.format(nmi,ari,purity,ami,homogeneity))
-        if heatmap:
-            x_ticks = ['']*len(Y)
-            y_ticks = ['']*len(Y)
-            idx = []
-            for i in range(nb_classes):
-                sub_idx = [j for j,item in enumerate(Y) if item==i]
-                idx += [j for j,item in enumerate(Y) if item==i]
-                x_ticks[len(idx)-1] = str(i)
-            assert len(idx)==len(Y)
-            X = X[idx,:]
-            Y = Y[idx]
-            #similarity_mat = pairwise_distances(X,metric='cosine')
-            similarity_mat = cosine_similarity(X)
-            #sns.heatmap(similarity_mat,cmap='Blues')
-            fig, ax = plt.subplots()
-            #ax.set_yticks(range(len(y_ticks)))
-            ax.set_yticklabels(y_ticks)
-            ax.set_xticks(range(len(x_ticks)))
-            ax.set_xticklabels(x_ticks)
-            im = ax.imshow(similarity_mat,cmap='Blues')
-            plt.colorbar(im)
-            plt.savefig('heatmap_%s_dim%d.png'%(self.name,X.shape[1]),dpi=600)
-
+ 
     def train(self, batch_size, label = False):
         indx = np.random.randint(low = 0, high = self.total_size, size = batch_size)
 

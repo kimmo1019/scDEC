@@ -13,14 +13,16 @@ import math
 import util
 import metric
 from sklearn.cluster import KMeans
-from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score
-
+from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score,homogeneity_score
 import pandas as pd 
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
-tf.set_random_seed(0)
+
+os.environ['PYTHONHASHSEED'] = '0'
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+tf.reset_default_graph()
+# tf.set_random_seed(213)
+# np.random.seed(123)
+# random.seed(123)
+
 '''
 Instructions: scDEC model
     x,y - data drawn from base density (e.g., Gaussian) and observation data
@@ -50,7 +52,6 @@ class scDEC(object):
         self.pool = pool
         self.x_dim = self.dx_net.input_dim
         self.y_dim = self.dy_net.input_dim
-        tf.reset_default_graph()
 
 
         self.x = tf.placeholder(tf.float32, [None, self.x_dim], name='x')
@@ -81,11 +82,6 @@ class scDEC(object):
         #self.CE_loss_x = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.x_onehot, logits=self.x_logits__))
         self.CE_loss_x = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=self.x_logits__,labels=self.x_onehot))
         
-
-        #standard gan
-        #self.g_loss_adv = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.dy_, labels=tf.ones_like(self.dy_)))
-        #self.h_loss_adv = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.dx_, labels=tf.ones_like(self.dx_)))
-        #wgan
         self.g_loss_adv = -tf.reduce_mean(self.dy_)
         self.h_loss_adv = -tf.reduce_mean(self.dx_)
         
@@ -93,27 +89,10 @@ class scDEC(object):
         self.g_loss = self.g_loss_adv + self.alpha*self.l2_loss_x + self.beta*self.l2_loss_y
         self.h_loss = self.h_loss_adv + self.alpha*self.l2_loss_x + self.beta*self.l2_loss_y
         self.g_h_loss = self.g_loss_adv + self.h_loss_adv + self.alpha*(self.l2_loss_x + self.l2_loss_y) + self.beta*self.CE_loss_x
-
-
-        # self.fake_x = tf.placeholder(tf.float32, [None, self.x_dim], name='fake_x')
-        # self.fake_x_onehot = tf.placeholder(tf.float32, [None, self.nb_classes], name='fake_x_onehot')
-        # self.fake_x_combine = tf.concat([self.fake_x,self.fake_x_onehot],axis=1,name='fake_x_combine')
-
-        # self.fake_y = tf.placeholder(tf.float32, [None, self.y_dim], name='fake_y')
-        
+       
         self.dx = self.dx_net(self.x)
         self.dy = self.dy_net(self.y)
 
-        # self.d_fake_x = self.dx_net(self.fake_x)
-        # self.d_fake_y = self.dy_net(self.fake_y)
-
-        #stardard gan
-        # self.dx_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.dx, labels=tf.ones_like(self.dx))) \
-        #     +tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.d_fake_x, labels=tf.zeros_like(self.d_fake_x)))
-        # self.dy_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.dy, labels=tf.ones_like(self.dy))) \
-        #     +tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.d_fake_y, labels=tf.zeros_like(self.d_fake_y)))
-        
-        #wgan
         self.dx_loss = -tf.reduce_mean(self.dx) + tf.reduce_mean(self.dx_)
         self.dy_loss = -tf.reduce_mean(self.dy) + tf.reduce_mean(self.dy_)
 
@@ -170,9 +149,11 @@ class scDEC(object):
 
         self.saver = tf.train.Saver(max_to_keep=5000)
 
+        #run_config = tf.ConfigProto(intra_op_parallelism_threads=1,inter_op_parallelism_threads=1)
         run_config = tf.ConfigProto()
         run_config.gpu_options.per_process_gpu_memory_fraction = 1.0
         run_config.gpu_options.allow_growth = True
+
         self.sess = tf.Session(config=run_config)
 
 
@@ -181,8 +162,6 @@ class scDEC(object):
         self.sess.run(tf.global_variables_initializer())
         self.summary_writer=tf.summary.FileWriter(self.graph_dir,graph=tf.get_default_graph())
         batches_per_eval = 100
-        #batches_per_eval = 50
-        #batches_per_eval = int(len(data_y_train)/self.batch_size)
         start_time = time.time()
         weights = np.ones(self.nb_classes, dtype=np.float64) / float(self.nb_classes)
         last_weights = np.ones(self.nb_classes, dtype=np.float64) / float(self.nb_classes)
@@ -198,6 +177,7 @@ class scDEC(object):
 
             bx, bx_onehot = self.x_sampler.train(self.batch_size,weights)
             by = random.sample(data_y_train,self.batch_size)
+
             #update G
             g_summary, _ = self.sess.run([self.g_merged_summary ,self.g_h_optim], feed_dict={self.x: bx, self.x_onehot: bx_onehot, self.y: by, self.lr:lr})
             self.summary_writer.add_summary(g_summary,batch_idx)
@@ -230,9 +210,8 @@ class scDEC(object):
                 if np.min(weights)<tol:
                     weights = self.adjust_tiny_weights(weights,tol)
                 last_weights = copy.copy(weights)
-                #print diff_weights,weights
             
-            if len(diff_history)>100 and np.mean(diff_history[-10:]) < 5e-3:
+            if len(diff_history)>100 and np.mean(diff_history[-10:]) < 5e-3 and batch_idx>20000:
                 print('Reach a stable cluster')
                 self.evaluate(timestamp,batch_idx)
                 sys.exit()
@@ -257,19 +236,23 @@ class scDEC(object):
             weights[i] = list(label_infer).count(i)  
         return weights/float(np.sum(weights)) 
 
-    def evaluate(self,timestamp,batch_idx,run_kmeans=False):
+    def evaluate(self,timestamp,batch_idx):
         data_y, label_y = self.y_sampler.load_all()
         N = data_y.shape[0]
         data_x_, data_x_onehot_ = self.predict_x(data_y)
-        np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_,label_y)
         label_infer = np.argmax(data_x_onehot_, axis=1)
         purity = metric.compute_purity(label_infer, label_y)
         nmi = normalized_mutual_info_score(label_y, label_infer)
         ari = adjusted_rand_score(label_y, label_infer)
-        #print('scDEC: NMI = {}, ARI = {}, Purity = {}'.format(nmi,ari,purity))
-        f = open('%s/log.txt'%self.save_dir,'a+')
-        f.write('NMI = {}\tARI = {}\tPurity = {}\t batch_idx = {}\n'.format(nmi,ari,purity,batch_idx))
-        f.close()
+        homo = homogeneity_score(label_y,label_infer)
+        print('scDEC: NMI = {}, ARI = {}, Homogeneity = {}'.format(nmi,ari,homo))
+        if is_train:
+            np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_,label_y)
+            f = open('%s/log.txt'%self.save_dir,'a+')
+            f.write('NMI = {}\tARI = {}\tHomogeneity = {}\t batch_idx = {}\n'.format(nmi,ari,homo,batch_idx))
+            f.close()
+        else:
+            np.savez('results/{}/data_pre.npz'.format(self.data),data_x_,data_x_onehot_,label_y)
 
     #predict with y_=G(x)
     def predict_y(self, x, x_onehot, bs=256):
@@ -307,7 +290,7 @@ class scDEC(object):
 
     def save(self,batch_idx):
 
-        checkpoint_dir = 'checkpoint/cluster_{}_{}_x_dim={}_y_dim={}_alpha={}_beta={}'.format(self.timestamp,self.data,self.x_dim, self.y_dim, self.alpha, self.beta)
+        checkpoint_dir = 'checkpoint/{}_{}_x_dim={}_y_dim={}_alpha={}_beta={}'.format(self.timestamp,self.data,self.x_dim, self.y_dim, self.alpha, self.beta)
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
 
@@ -317,32 +300,35 @@ class scDEC(object):
 
         if pre_trained == True:
             print('Loading Pre-trained Model...')
-            checkpoint_dir = 'pre_trained_models/{}/{}_{}_{}_{}}'.format(self.data, self.x_dim,self.y_dim, self.alpha, self.beta)
+            checkpoint_dir = 'pre_trained_models/{}'.format(self.data)
+            self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model.ckpt-best'))
         else:
             if timestamp == '':
                 print('Best Timestamp not provided.')
                 checkpoint_dir = ''
             else:
-                checkpoint_dir = 'checkpoint/{}_{}_x_dim={}_y_dim={}_alpha={}_beta={}'.format(self.timestamp,self.data,self.x_dim, self.y_dim, self.alpha, self.beta)
+                checkpoint_dir = 'checkpoint/{}_{}_x_dim={}_y_dim={}_alpha={}_beta={}'.format(timestamp,self.data,self.x_dim, self.y_dim, self.alpha, self.beta)
                 self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model.ckpt-%d'%batch_idx))
                 print('Restored model weights.')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
-    parser.add_argument('--data', type=str, default='cluster')
-    parser.add_argument('--model', type=str, default='model')
+    parser.add_argument('--data', type=str, default='Splenocyte',help='name of dataset')
+    parser.add_argument('--model', type=str, default='model',help='file for definition of neural networks')
     parser.add_argument('--K', type=int, default=11)
     parser.add_argument('--dx', type=int, default=10)
     parser.add_argument('--dy', type=int, default=20)
     parser.add_argument('--bs', type=int, default=64)
-    parser.add_argument('--nb_batches', type=int, default=50000)
+    parser.add_argument('--nb_batches', type=int, default=50000,help='total number of training batches or the batch idx for loading pretrain model')
     parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--alpha', type=float, default=10.0)
     parser.add_argument('--beta', type=float, default=10.0)
-    parser.add_argument('--ratio', type=float, default=0.0)
+    parser.add_argument('--ratio', type=float, default=0.2)
     parser.add_argument('--timestamp', type=str, default='')
     parser.add_argument('--train', type=bool, default=False)
+    parser.add_argument('--tf_seed', type=int, default=0)
     args = parser.parse_args()
+    tf_seed = args.tf_seed
     data = args.data
     model = importlib.import_module(args.model)
     nb_classes = args.K
@@ -376,5 +362,7 @@ if __name__ == '__main__':
             timestamp = 'pre-trained'
         else:
             model.load(pre_trained=False, timestamp = timestamp, batch_idx = nb_batches-1)
+        model.evaluate(timestamp,nb_batches-1)
+        
             
             
