@@ -89,7 +89,7 @@ class scATAC_Sampler(object):
         #pca = PCA(n_components=dim, random_state=100).fit(X)
         pca = PCA(n_components=dim, random_state=3456).fit(X)
         X = pca.transform(X)
-        self.correlation(X,Y)
+        #self.correlation(X,Y)
         self.X, self.Y = X, Y
         self.total_size = len(self.Y)
 

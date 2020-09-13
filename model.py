@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tensorflow.contrib as tc
 import tensorflow.contrib.layers as tcl
+
 #the default is relu function
 def leaky_relu(x, alpha=0.2):
     return tf.maximum(tf.minimum(0.0, alpha * x), x)
