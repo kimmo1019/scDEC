@@ -3,18 +3,12 @@ import scipy.sparse
 import scipy.io
 import numpy as np
 import copy
-from scipy.special import polygamma
 import scipy.special
 from scipy import pi
-from tqdm import tqdm
 import sys
 import pandas as pd
 from os.path import join
-from collections import Counter
-import cPickle as pickle
 import gzip
-import hdf5storage
-from scipy.io import loadmat
 from sklearn.decomposition import PCA,TruncatedSVD
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import pairwise_distances
