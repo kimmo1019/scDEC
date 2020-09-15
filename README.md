@@ -17,7 +17,7 @@ Installation has been tested in a Linux platform with Python2.7. GPU card is rec
 
 ## Instructions
 
-This section provides instructions on how to run scDEC with scATAC-seq datasets.
+This section provides instructions on how to run scDEC with scATAC-seq datasets. One can also refer to [Codeocean platform](https://codeocean.com/capsule/0746056) for reproducing results.
 
 ### Data preparation
 
