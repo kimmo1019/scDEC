@@ -17,7 +17,7 @@ Installation has been tested in a Linux platform with Python2.7. GPU card is rec
 
 ## Instructions
 
-This section provides instructions on how to run scDEC with scATAC-seq datasets. One can also refer to [Codeocean platform](https://codeocean.com/capsule/0746056) for reproducing results.
+This section provides instructions on how to run scDEC with scATAC-seq datasets. One can also refer to [Codeocean platform](https://codeocean.com/capsule/0746056) and click `Reproducible Run` on the right. The embedding and clustering results of several datasets will be shown on the right panel.
 
 ### Data preparation
 
