@@ -139,11 +139,13 @@ if __name__ == '__main__':
         else:
             data = np.load('results/%s/data_pre.npz'%args.data)
             embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+            embedding_before_softmax = embedding[:,-label_infered_onehot.shape[1]:]
             label_infered = np.argmax(label_infered_onehot, axis=1)
             label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
             save_clustering(label_infered,save='results/%s/scDEC_cluster.txt'%args.data)
             save_embedding(embedding,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
             plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data)
+            plot_embedding(embedding_before_softmax,label_true,save='results/%s/scDEC_embedding_before_softmax.png'%args.data)
 
 
     

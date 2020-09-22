@@ -333,7 +333,7 @@ class Encoder_img(object):
                 )        
             logits = output[:, -self.nb_classes:]
             y = tf.nn.softmax(logits)
-            return output[:, :-self.nb_classes], y, logits        
+            return output[:, :-self.nb_classes], y, logits     
 
     @property
     def vars(self):

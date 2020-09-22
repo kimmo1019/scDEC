@@ -16,12 +16,10 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.cluster import normalized_mutual_info_score, adjusted_rand_score,homogeneity_score
 import pandas as pd 
 
-os.environ['PYTHONHASHSEED'] = '0'
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
+
+tf.set_random_seed(0)
 tf.reset_default_graph()
-# tf.set_random_seed(213)
-# np.random.seed(123)
-# random.seed(123)
+
 
 '''
 Instructions: scDEC model
@@ -323,12 +321,10 @@ if __name__ == '__main__':
     parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--alpha', type=float, default=10.0)
     parser.add_argument('--beta', type=float, default=10.0)
-    parser.add_argument('--ratio', type=float, default=0.2)
+    parser.add_argument('--ratio', type=float, default=0.2,help='parameter in updating Caltegory distribution')
     parser.add_argument('--timestamp', type=str, default='')
     parser.add_argument('--train', type=bool, default=False)
-    parser.add_argument('--tf_seed', type=int, default=0)
     args = parser.parse_args()
-    tf_seed = args.tf_seed
     data = args.data
     model = importlib.import_module(args.model)
     nb_classes = args.K

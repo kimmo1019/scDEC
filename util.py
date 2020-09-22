@@ -25,7 +25,6 @@ sns.set_style("whitegrid", {'axes.grid' : False})
 matplotlib.rc('xtick', labelsize=20) 
 matplotlib.rc('ytick', labelsize=20) 
 matplotlib.rcParams.update({'font.size': 22})
-np.random.seed(0)
 
 def compute_inertia(a, X, norm=True):
     if norm:
@@ -65,25 +64,28 @@ def compute_gap(clustering, data, k_max=10, n_references=100):
 
 #scATAC data
 class scATAC_Sampler(object):
-    def __init__(self,name='GMvsHL',dim=20):
+    def __init__(self,name='Forabrain',dim=20):
         self.name = name
         self.dim = dim
         X = pd.read_csv('datasets/%s/sc_mat.txt'%name,sep='\t',header=0,index_col=[0]).values
         labels = [item.strip() for item in open('datasets/%s/label.txt'%name).readlines()]
         uniq_labels = list(np.unique(labels))
         Y = np.array([uniq_labels.index(item) for item in labels])
-        #X,Y = self.filter_cells(X,Y,min_peaks=10)
-        X,Y = self.filter_peaks(X,Y,ratio=0.03)
+        X,Y = self.filter_cells(X,Y,min_peaks=10)
+        if name=='Forebrain':
+            X,Y = self.filter_peaks(X,Y,ratio=0.01)
+            seed = 85227
+        else:
+            X,Y = self.filter_peaks(X,Y,ratio=0.03)
+            seed = 3456            
         #TF-IDF transformation
         nfreqs = 1.0 * X / np.tile(np.sum(X,axis=0), (X.shape[0],1))
         X  = nfreqs * np.tile(np.log(1 + 1.0 * X.shape[1] / np.sum(X,axis=1)).reshape(-1,1), (1,X.shape[1]))
         X = X.T #(cells, peaks)
         X = MinMaxScaler().fit_transform(X)
         #PCA transformation
-        #pca = PCA(n_components=dim, random_state=100).fit(X)
-        pca = PCA(n_components=dim, random_state=3456).fit(X)
+        pca = PCA(n_components=dim, random_state=seed).fit(X)
         X = pca.transform(X)
-        #self.correlation(X,Y)
         self.X, self.Y = X, Y
         self.total_size = len(self.Y)
 
