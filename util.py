@@ -64,18 +64,18 @@ def compute_gap(clustering, data, k_max=10, n_references=100):
 
 #scATAC data
 class scATAC_Sampler(object):
-    def __init__(self,name='Forabrain',dim=20):
+    def __init__(self,name='Forabrain',dim=20,low=0.01,has_label=True):
         self.name = name
         self.dim = dim
+        self.has_label = has_label
         X = pd.read_csv('datasets/%s/sc_mat.txt'%name,sep='\t',header=0,index_col=[0]).values
-        labels = [item.strip() for item in open('datasets/%s/label.txt'%name).readlines()]
-        uniq_labels = list(np.unique(labels))
-        Y = np.array([uniq_labels.index(item) for item in labels])
-        X,Y = self.filter_cells(X,Y,min_peaks=10)
-        if name=='Forebrain':
-            X,Y = self.filter_peaks(X,Y,ratio=0.01)
-        else:
-            X,Y = self.filter_peaks(X,Y,ratio=0.03)          
+        if has_label:
+            labels = [item.strip() for item in open('datasets/%s/label.txt'%name).readlines()]
+            uniq_labels = list(np.unique(labels))
+            Y = np.array([uniq_labels.index(item) for item in labels])
+            #X,Y = self.filter_cells(X,Y,min_peaks=10)
+            self.Y = Y
+        X = self.filter_peaks(X,low)
         #TF-IDF transformation
         nfreqs = 1.0 * X / np.tile(np.sum(X,axis=0), (X.shape[0],1))
         X  = nfreqs * np.tile(np.log(1 + 1.0 * X.shape[1] / np.sum(X,axis=1)).reshape(-1,1), (1,X.shape[1]))
@@ -84,13 +84,14 @@ class scATAC_Sampler(object):
         #PCA transformation
         pca = PCA(n_components=dim, random_state=3456).fit(X)
         X = pca.transform(X)
-        self.X, self.Y = X, Y
-        self.total_size = len(self.Y)
+        self.X = X
+        self.total_size = self.X.shape[0]
 
 
-    def filter_peaks(self,X,Y,ratio):
-        ind = np.sum(X>0,axis=1) > len(Y)*ratio
-        return X[ind,:], Y
+    def filter_peaks(self,X,ratio):
+        ind = np.sum(X>0,axis=1) > X.shape[1]*ratio
+        return X[ind,:]
+
     def filter_cells(self,X,Y,min_peaks):
         ind = np.sum(X>0,axis=0) > min_peaks
         return X[:,ind], Y[ind]
@@ -107,16 +108,19 @@ class scATAC_Sampler(object):
         ami = adjusted_mutual_info_score(Y, label_kmeans)
         print('NMI = {}, ARI = {}, Purity = {},AMI = {}, Homogeneity = {}'.format(nmi,ari,purity,ami,homogeneity))
  
-    def train(self, batch_size, label = False):
+    def train(self, batch_size):
         indx = np.random.randint(low = 0, high = self.total_size, size = batch_size)
 
-        if label:
-            return self.X[indx, :], self.Y[indx].flatten()
+        if self.has_label:
+            return self.X[indx, :], self.Y[indx]
         else:
             return self.X[indx, :]
 
     def load_all(self):
-         return self.X, self.Y
+        if self.has_label:
+            return self.X, self.Y
+        else:
+            return self.X 
 
 
 #sample continuous (Gaussian) and discrete (Catagory) latent variables together

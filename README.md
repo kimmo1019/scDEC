@@ -38,9 +38,11 @@ python main_clustering.py --data [dataset] --K [nb_of_clusters] --dx [x_dim] --d
 ```
 For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data Splenocyte --K 12 --dx 8 --dy 20` to cluster the scATAC-seq data with pretrained model.
 
+Or one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data Splenocyte --K 12 --dx 8 --dy 20 --train True` to train the model from scratch.
+
 ### Model evaluation
 
-If the pretrained model was used, the clustering results in the last step will be directly saved in `results/[dataset]/data_pre.npz` where `dataset` is the name of the scATAC-seq dataset.
+If the pretrained model was used, the clustering results in the last step will be directly saved in `results/[dataset]/data_pre.npz` where `dataset` is the name of the scATAC-seq dataset. Note that `data_pre.npz` or `data_at_xxx.npz` contains the predictions from the H network. The first part denotes the embeddings and the second part denotes the inferred one-hot label where one can use `np.argmax` function to get the cluster label.
 
 Then one can run `python eval.py --data [dataset]` to analyze the clustering results. 
 For an example, one can run `python eval.py --data Splenocyte`
@@ -48,7 +50,7 @@ For an example, one can run `python eval.py --data Splenocyte`
 The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent feature matrix (`scDEC_embedding.csv`), inferred cluster label (`scDEC_cluster.txt`) will be saved in the `results/[dataset]` folder.
 
 
-If scDEC model was trained from scratch, the results will be marked by a unique timestamp YYYYMMDD_HHMMSS. This timestamp records the exact time when you run the script.
+If scDEC model was trained from scratch, the results will be marked by a unique timestamp YYYYMMDD_HHMMSS. This timestamp records the exact time when you run the script. The outputs from the training includes:
 
  1) `log` files and predicted assignmemnts `data_at_xxx.npz` (xxx denotes different epoch) can be found at folder `results/[dataset]/YYYYMMDD_HHMMSS_x_dim=8_y_dim=20_alpha=10.0_beta=10.0_ratio=0.2`.
  
@@ -59,14 +61,37 @@ If scDEC model was trained from scratch, the results will be marked by a unique 
  Next, one can run 
  
 ```python
-python eval.py --data [dataset] --timestamp [timestamp] --epoch [epoch]
+python eval.py --data [dataset] --timestamp [timestamp] --epoch [epoch] --train [is_train]
 [dataset]  -  the name of the dataset (e.g.,Splenocyte)
 [timestamp]  -  the timestamp of the experiment you ran
 [epoch]  -  specify to use the results of which epoch (it can be ignored)
+[is_train] - indicate training from scratch 
 ```
 
+E.g., `python eval.py --data All_blood --timestamp 20200910_143208 --train True`
 
 The t-SNE visualization plot of latent features (`scDEC_embedding.png`), latent feature matrix (`scDEC_embedding.csv`), inferred cluster label (`scDEC_cluster.txt`) will be saved in the same `results` folder as 1).
+
+
+### Analyzing scATAC dataset without label
+
+One can also use scDEC to analyze custome scATAC-seq dataset, especially the label is unknown. First, the users should prepare raw read count matrix (`sc_mat.txt`) under the folder `datasets/[NAME]`. `[NAME]` denotes the dataset name. 
+
+Second, one can run the following command:
+
+```python
+python main_clustering.py --data [dataset] --K [nb_of_clusters] --dx [x_dim] --dy [y_dim] --train [is_train] --no_label
+[dataset]  -  the name of the dataset (e.g.,Mydataset)
+[nb_of_clusters]  -  the number of clusters (e.g., 6)
+[x_dim]  -  the dimension of latent space (continous part)
+[y_dim]  -  the dimension of PCA (defalt: 20)
+[is_train] - indicate training from scratch 
+```
+
+For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data Mydataset --K 10 --dx 5 --dy 20 --train True --no_label` to clustering custom dataset.
+
+Then one can run `python eval.py --data Mydataset --timestamp YYYYMMDD_HHMMSS --epoch epoch --no_label`. Nota time the timestamp `YYYYMMDD_HHMMSS` (for training) and epoch/batch index `epoch` (the last training epoch/batch index is recommended) should be provided. The clustering results (cluster assignments) will be saved in the `results/Mydataset/YYYYMMDD_HHMMSS_xxx` folder.
+
 
 
 ## Tutorial

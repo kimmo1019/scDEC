@@ -156,7 +156,7 @@ class scDEC(object):
 
 
     def train(self, nb_batches, patience):
-        data_y_train = self.y_sampler.load_all()[0]
+        data_y = self.y_sampler.load_all()[0] if has_label else self.y_sampler.load_all()
         self.sess.run(tf.global_variables_initializer())
         self.summary_writer=tf.summary.FileWriter(self.graph_dir,graph=tf.get_default_graph())
         batches_per_eval = 100
@@ -169,12 +169,12 @@ class scDEC(object):
             #update D
             for _ in range(5):
                 bx, bx_onehot = self.x_sampler.train(self.batch_size,weights)
-                by = random.sample(data_y_train,self.batch_size)
+                by = random.sample(data_y,self.batch_size)
                 d_summary,_ = self.sess.run([self.d_merged_summary, self.d_optim], feed_dict={self.x: bx, self.x_onehot: bx_onehot, self.y: by, self.lr:lr})
             self.summary_writer.add_summary(d_summary,batch_idx)
 
             bx, bx_onehot = self.x_sampler.train(self.batch_size,weights)
-            by = random.sample(data_y_train,self.batch_size)
+            by = random.sample(data_y,self.batch_size)
 
             #update G
             g_summary, _ = self.sess.run([self.g_merged_summary ,self.g_h_optim], feed_dict={self.x: bx, self.x_onehot: bx_onehot, self.y: by, self.lr:lr})
@@ -222,7 +222,7 @@ class scDEC(object):
         return weights    
 
     def estimate_weights(self,use_kmeans=False):
-        data_y, _ = self.y_sampler.load_all()
+        data_y = self.y_sampler.load_all()[0] if has_label else self.y_sampler.load_all()
         data_x_, data_x_onehot_ = self.predict_x(data_y)
         if use_kmeans:
             km = KMeans(n_clusters=nb_classes, random_state=0).fit(np.concatenate([data_x_,data_x_onehot_],axis=1))
@@ -235,22 +235,30 @@ class scDEC(object):
         return weights/float(np.sum(weights)) 
 
     def evaluate(self,timestamp,batch_idx):
-        data_y, label_y = self.y_sampler.load_all()
-        N = data_y.shape[0]
+        if has_label:
+            data_y, label_y = self.y_sampler.load_all()
+        else:
+            data_y = self.y_sampler.load_all()
         data_x_, data_x_onehot_ = self.predict_x(data_y)
         label_infer = np.argmax(data_x_onehot_, axis=1)
-        purity = metric.compute_purity(label_infer, label_y)
-        nmi = normalized_mutual_info_score(label_y, label_infer)
-        ari = adjusted_rand_score(label_y, label_infer)
-        homo = homogeneity_score(label_y,label_infer)
-        print('scDEC: NMI = {}, ARI = {}, Homogeneity = {}'.format(nmi,ari,homo))
-        if is_train:
-            np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_,label_y)
-            f = open('%s/log.txt'%self.save_dir,'a+')
-            f.write('NMI = {}\tARI = {}\tHomogeneity = {}\t batch_idx = {}\n'.format(nmi,ari,homo,batch_idx))
-            f.close()
+        if has_label:
+            purity = metric.compute_purity(label_infer, label_y)
+            nmi = normalized_mutual_info_score(label_y, label_infer)
+            ari = adjusted_rand_score(label_y, label_infer)
+            homo = homogeneity_score(label_y,label_infer)
+            print('scDEC: NMI = {}, ARI = {}, Homogeneity = {}'.format(nmi,ari,homo))
+            if is_train:
+                f = open('%s/log.txt'%self.save_dir,'a+')
+                f.write('NMI = {}\tARI = {}\tHomogeneity = {}\t batch_idx = {}\n'.format(nmi,ari,homo,batch_idx))
+                f.close()
+                np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_,label_y)
+            else:
+                np.savez('results/{}/data_pre.npz'.format(self.data),data_x_,data_x_onehot_,label_y)    
         else:
-            np.savez('results/{}/data_pre.npz'.format(self.data),data_x_,data_x_onehot_,label_y)
+            if is_train:
+                np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_)
+            else:
+                np.savez('results/{}/data_pre.npz'.format(self.data),data_x_,data_x_onehot_)
 
     #predict with y_=G(x)
     def predict_y(self, x, x_onehot, bs=256):
@@ -322,8 +330,11 @@ if __name__ == '__main__':
     parser.add_argument('--alpha', type=float, default=10.0)
     parser.add_argument('--beta', type=float, default=10.0)
     parser.add_argument('--ratio', type=float, default=0.2,help='parameter in updating Caltegory distribution')
+    parser.add_argument('--low', type=float, default=0.01,help='low ratio for filtering peaks')
     parser.add_argument('--timestamp', type=str, default='')
     parser.add_argument('--train', type=bool, default=False)
+    parser.add_argument('--no_label', action='store_true',help='whether the dataset has label')
+    
     args = parser.parse_args()
     data = args.data
     model = importlib.import_module(args.model)
@@ -336,8 +347,11 @@ if __name__ == '__main__':
     alpha = args.alpha
     beta = args.beta
     ratio = args.ratio
+    low = args.low
     timestamp = args.timestamp
     is_train = args.train
+    has_label = not args.no_label
+
     g_net = model.Generator(input_dim=x_dim,output_dim = y_dim,name='g_net',nb_layers=10,nb_units=512,concat_every_fcl=False)
     h_net = model.Encoder(input_dim=y_dim,output_dim = x_dim+nb_classes,feat_dim=x_dim,name='h_net',nb_layers=10,nb_units=256)
     dx_net = model.Discriminator(input_dim=x_dim,name='dx_net',nb_layers=2,nb_units=256)
@@ -345,7 +359,7 @@ if __name__ == '__main__':
     pool = util.DataPool(10)
 
     xs = util.Mixture_sampler(nb_classes=nb_classes,N=10000,dim=x_dim,sd=1)
-    ys = util.scATAC_Sampler(data,y_dim)
+    ys = util.scATAC_Sampler(data,y_dim,low,has_label)
 
     model = scDEC(g_net, h_net, dx_net, dy_net, xs, ys, nb_classes, data, pool, batch_size, alpha, beta, is_train)
 

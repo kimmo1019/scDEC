@@ -118,34 +118,49 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(description='Simultaneous deep generative modeling and clustering of single cell genomic data')
         parser.add_argument('--data', '-d', type=str, help='which dataset')
         parser.add_argument('--timestamp', '-t', type=str, help='timestamp')
-        parser.add_argument('--epoch', '-e', type=int, help='which epoch')
+        parser.add_argument('--epoch', '-e', type=int, help='epoch or batch index')
         parser.add_argument('--train', type=bool, default=False)
         parser.add_argument('--save', '-s', type=str, help='save latent visualization plot (e.g., t-SNE)')
+        parser.add_argument('--no_label', action='store_true',help='whether the dataset has label')
         args = parser.parse_args()
-
-        if args.train:
-            exp_dir = [item for item in os.listdir('results/%s'%args.data) if item.startswith(args.timestamp)][0]
-            if args.epoch is None:
-                epoch = get_best_epoch(exp_dir,args.data,'ARI')
+        has_label = not args.no_label
+        if has_label:
+            if args.train:
+                exp_dir = [item for item in os.listdir('results/%s'%args.data) if item.startswith(args.timestamp)][0]
+                if args.epoch is None:
+                    epoch = get_best_epoch(exp_dir,args.data,'ARI')
+                else:
+                    epoch = args.epoch
+                data = np.load('results/%s/%s/%s'%(args.data,exp_dir,epoch))
+                embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+                embedding_before_softmax = embedding[:,-label_infered_onehot.shape[1]:]
+                label_infered = np.argmax(label_infered_onehot, axis=1)
+                label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
+                save_clustering(label_infered,save='results/%s/%s/scDEC_cluster.txt'%(args.data,exp_dir))
+                save_embedding(embedding,save='results/%s/%s/scDEC_embedding.csv'%(args.data,exp_dir),sep='\t')
+                plot_embedding(embedding,label_true,save='results/%s/%s/scDEC_embedding.png'%(args.data,exp_dir))
+                plot_embedding(embedding_before_softmax,label_true,save='results/%s/%s/scDEC_embedding_before_softmax.png'%(args.data,exp_dir))
             else:
-                epoch = args.epoch
-            data = np.load('results/%s/%s/%s'%(args.data,exp_dir,epoch))
-            embedding, label_infered_onehot = data['arr_0'],data['arr_1']
-            label_infered = np.argmax(label_infered_onehot, axis=1)
-            label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
-            save_clustering(label_infered,save='results/%s/%s/scDEC_cluster.txt'%(args.data,exp_dir))
-            save_embedding(embedding,save='results/%s/%s/scDEC_embedding.csv'%(args.data,exp_dir),sep='\t')
-            plot_embedding(embedding,label_true,save='results/%s/%s/scDEC_embedding.png'%(args.data,exp_dir))
+                data = np.load('results/%s/data_pre.npz'%args.data)
+                embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+                embedding_before_softmax = embedding[:,-label_infered_onehot.shape[1]:]
+                label_infered = np.argmax(label_infered_onehot, axis=1)
+                label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
+                save_clustering(label_infered,save='results/%s/scDEC_cluster.txt'%args.data)
+                save_embedding(embedding,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
+                plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data)
+                plot_embedding(embedding_before_softmax,label_true,save='results/%s/scDEC_embedding_before_softmax.png'%args.data)
         else:
-            data = np.load('results/%s/data_pre.npz'%args.data)
-            embedding, label_infered_onehot = data['arr_0'],data['arr_1']
-            embedding_before_softmax = embedding[:,-label_infered_onehot.shape[1]:]
-            label_infered = np.argmax(label_infered_onehot, axis=1)
-            label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
-            save_clustering(label_infered,save='results/%s/scDEC_cluster.txt'%args.data)
-            save_embedding(embedding,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
-            plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data)
-            plot_embedding(embedding_before_softmax,label_true,save='results/%s/scDEC_embedding_before_softmax.png'%args.data)
+            if args.epoch is None:
+                print('Provide the epoch or batch index to analyze')
+                sys.exit()
+            else:
+                exp_dir = [item for item in os.listdir('results/%s'%args.data) if item.startswith(args.timestamp)][0]
+                data = np.load('results/%s/%s/data_at_%s.npz'%(args.data,exp_dir,args.epoch))
+                embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+                label_infered = np.argmax(label_infered_onehot, axis=1)
+                save_clustering(label_infered,save='results/%s/%s/scDEC_cluster.txt'%(args.data,exp_dir))
+                
 
 
     
