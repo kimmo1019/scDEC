@@ -74,17 +74,15 @@ class scATAC_Sampler(object):
         X,Y = self.filter_cells(X,Y,min_peaks=10)
         if name=='Forebrain':
             X,Y = self.filter_peaks(X,Y,ratio=0.01)
-            seed = 85227
         else:
-            X,Y = self.filter_peaks(X,Y,ratio=0.03)
-            seed = 3456            
+            X,Y = self.filter_peaks(X,Y,ratio=0.03)          
         #TF-IDF transformation
         nfreqs = 1.0 * X / np.tile(np.sum(X,axis=0), (X.shape[0],1))
         X  = nfreqs * np.tile(np.log(1 + 1.0 * X.shape[1] / np.sum(X,axis=1)).reshape(-1,1), (1,X.shape[1]))
         X = X.T #(cells, peaks)
         X = MinMaxScaler().fit_transform(X)
         #PCA transformation
-        pca = PCA(n_components=dim, random_state=seed).fit(X)
+        pca = PCA(n_components=dim, random_state=3456).fit(X)
         X = pca.transform(X)
         self.X, self.Y = X, Y
         self.total_size = len(self.Y)

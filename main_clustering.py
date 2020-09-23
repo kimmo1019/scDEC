@@ -209,7 +209,7 @@ class scDEC(object):
                     weights = self.adjust_tiny_weights(weights,tol)
                 last_weights = copy.copy(weights)
             
-            if len(diff_history)>100 and np.mean(diff_history[-10:]) < 5e-3 and batch_idx>20000:
+            if len(diff_history)>100 and np.mean(diff_history[-10:]) < 5e-3 and batch_idx>30000:
                 print('Reach a stable cluster')
                 self.evaluate(timestamp,batch_idx)
                 sys.exit()
@@ -222,7 +222,7 @@ class scDEC(object):
         return weights    
 
     def estimate_weights(self,use_kmeans=False):
-        data_y, label_y = self.y_sampler.load_all()
+        data_y, _ = self.y_sampler.load_all()
         data_x_, data_x_onehot_ = self.predict_x(data_y)
         if use_kmeans:
             km = KMeans(n_clusters=nb_classes, random_state=0).fit(np.concatenate([data_x_,data_x_onehot_],axis=1))
