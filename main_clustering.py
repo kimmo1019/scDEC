@@ -155,7 +155,7 @@ class scDEC(object):
         self.sess = tf.Session(config=run_config)
 
 
-    def train(self, nb_batches, patience):
+    def train(self, nb_batches):
         data_y = self.y_sampler.load_all()[0] if has_label else self.y_sampler.load_all()
         self.sess.run(tf.global_variables_initializer())
         self.summary_writer=tf.summary.FileWriter(self.graph_dir,graph=tf.get_default_graph())
@@ -320,19 +320,18 @@ class scDEC(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
     parser.add_argument('--data', type=str, default='Splenocyte',help='name of dataset')
-    parser.add_argument('--model', type=str, default='model',help='file for definition of neural networks')
-    parser.add_argument('--K', type=int, default=11)
-    parser.add_argument('--dx', type=int, default=10)
-    parser.add_argument('--dy', type=int, default=20)
-    parser.add_argument('--bs', type=int, default=64)
+    parser.add_argument('--model', type=str, default='model',help='model definition')
+    parser.add_argument('--K', type=int, default=11,help='number of clusters')
+    parser.add_argument('--dx', type=int, default=10,help='dimension of Gaussian distribution')
+    parser.add_argument('--dy', type=int, default=20,help='dimension of preprocessed data')
+    parser.add_argument('--bs', type=int, default=64,help='batch size')
     parser.add_argument('--nb_batches', type=int, default=50000,help='total number of training batches or the batch idx for loading pretrain model')
-    parser.add_argument('--patience', type=int, default=20)
-    parser.add_argument('--alpha', type=float, default=10.0)
-    parser.add_argument('--beta', type=float, default=10.0)
+    parser.add_argument('--alpha', type=float, default=10.0,help='coefficient of loss term')
+    parser.add_argument('--beta', type=float, default=10.0,help='coefficient of loss term')
     parser.add_argument('--ratio', type=float, default=0.2,help='parameter in updating Caltegory distribution')
     parser.add_argument('--low', type=float, default=0.01,help='low ratio for filtering peaks')
     parser.add_argument('--timestamp', type=str, default='')
-    parser.add_argument('--train', type=bool, default=False)
+    parser.add_argument('--train', type=bool, default=False,help='whether train from scratch')
     parser.add_argument('--no_label', action='store_true',help='whether the dataset has label')
     
     args = parser.parse_args()
@@ -343,7 +342,6 @@ if __name__ == '__main__':
     y_dim = args.dy
     batch_size = args.bs
     nb_batches = args.nb_batches
-    patience = args.patience
     alpha = args.alpha
     beta = args.beta
     ratio = args.ratio
@@ -364,7 +362,7 @@ if __name__ == '__main__':
     model = scDEC(g_net, h_net, dx_net, dy_net, xs, ys, nb_classes, data, pool, batch_size, alpha, beta, is_train)
 
     if args.train:
-        model.train(nb_batches=nb_batches, patience=patience)
+        model.train(nb_batches=nb_batches)
     else:
         print('Attempting to Restore Model ...')
         if timestamp == '':

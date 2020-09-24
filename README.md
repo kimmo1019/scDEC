@@ -31,12 +31,12 @@ scDEC is an unsupervised learning model for analyzing scATAC-seq data. One can r
 python main_clustering.py --data [dataset] --K [nb_of_clusters] --dx [x_dim] --dy [y_dim] --train [is_train]
 [dataset]  -  the name of the dataset (e.g.,Splenocyte)
 [nb_of_clusters]  -  the number of clusters (e.g., 6)
-[x_dim]  -  the dimension of latent space (continous part)
+[x_dim]  -  the dimension of Gaussian distribution
 [y_dim]  -  the dimension of PCA (defalt: 20)
 [is_train] - indicate training from scratch or using pretrained model
 
 ```
-For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data Splenocyte --K 12 --dx 8 --dy 20` to cluster the scATAC-seq data with pretrained model.
+For an example, one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data Splenocyte --K 12 --dx 8 --dy 20` to cluster the scATAC-seq data with pretrained model. Note that the dimension of the embedding should be `K+x_dim`
 
 Or one can run `CUDA_VISIBLE_DEVICES=0 python main_clustering.py  --data Splenocyte --K 12 --dx 8 --dy 20 --train True` to train the model from scratch.
 
