@@ -2,7 +2,7 @@
 
 ![model](https://github.com/kimmo1019/scDEC/blob/master/model.png)
 
-scDEC is a computational tool for single cell ATAC-seq data analysis with deep generative neural networks. scDEC enables simultaneously learning the deep embedding and clustering of the cells in an unsupervised manner.
+scDEC is a computational tool for single cell ATAC-seq data analysis with deep generative neural networks. scDEC enables simultaneously learning the deep embedding and clustering of the cells in an unsupervised manner. scDEC is also applicable to multi-modal single cell data. We tested it on the PBMC paired data (scRNA-seq and scATAC-seq) from 10x Genomics (see Tutorials).
 
 ## Requirements
 - TensorFlow==1.13.1
@@ -100,6 +100,7 @@ Then one can run `python eval.py --data Mydataset --timestamp YYYYMMDD_HHMMSS --
 
 [Tutorial Full mouse atlas](https://github.com/kimmo1019/scDEC/wiki/Full-Mouse-atlas) Run scDEC on full Mouse atlas dataset (k=40, 81173 cells)
 
+[Tutorial PBMC10k paired data ](https://github.com/kimmo1019/scDEC/wiki/PBMC10k) Run scDEC on PBMC data, which contains around 10k cells with both scRNA-seq and scATAC-seq (labels were manually annotated from 10x Genomic R&D group)
  
 ## Contact
 
