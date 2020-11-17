@@ -77,7 +77,7 @@ def cluster_eval(labels_true,labels_infer):
     ari = adjusted_rand_score(labels_true, labels_infer)
     homogeneity = homogeneity_score(labels_true, labels_infer)
     ami = adjusted_mutual_info_score(labels_true, labels_infer)
-    #print('NMI = {}, ARI = {}, Purity = {},AMI = {}, Homogeneity = {}'.format(nmi,ari,purity,ami,homogeneity))
+    print('NMI = {}, ARI = {}, Purity = {},AMI = {}, Homogeneity = {}'.format(nmi,ari,purity,ami,homogeneity))
     return nmi,ari,homogeneity
 
 def get_best_epoch(exp_dir, dataset, measurement='NMI'):
@@ -139,17 +139,33 @@ if __name__ == '__main__':
                 save_clustering(label_infered,save='results/%s/%s/scDEC_cluster.txt'%(args.data,exp_dir))
                 save_embedding(embedding,save='results/%s/%s/scDEC_embedding.csv'%(args.data,exp_dir),sep='\t')
                 plot_embedding(embedding,label_true,save='results/%s/%s/scDEC_embedding.png'%(args.data,exp_dir))
-                plot_embedding(embedding_before_softmax,label_true,save='results/%s/%s/scDEC_embedding_before_softmax.png'%(args.data,exp_dir))
             else:
-                data = np.load('results/%s/data_pre.npz'%args.data)
-                embedding, label_infered_onehot = data['arr_0'],data['arr_1']
-                embedding_before_softmax = embedding[:,-label_infered_onehot.shape[1]:]
-                label_infered = np.argmax(label_infered_onehot, axis=1)
-                label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
-                save_clustering(label_infered,save='results/%s/scDEC_cluster.txt'%args.data)
-                save_embedding(embedding,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
-                plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data)
-                plot_embedding(embedding_before_softmax,label_true,save='results/%s/scDEC_embedding_before_softmax.png'%args.data)
+                if args.data == 'PBMC10k':
+                    data = np.load('results/%s/data_pre.npz'%args.data)
+                    embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+                    embedding_before_softmax = embedding[:,-label_infered_onehot.shape[1]:]
+                    label_infered = np.argmax(label_infered_onehot, axis=1)
+                    barcode2label = {item.split('\t')[0]:item.split('\t')[1].strip() for item in open('datasets/%s/labels_annot.txt'%args.data).readlines()[1:]}
+                    barcodes = [item.strip() for item in open('datasets/%s/barcodes.tsv'%args.data).readlines()]
+                    labels_annot = [barcode2label[item] for i,item in enumerate(barcodes) if item in barcode2label.keys()]
+                    select_idx = [i for i,item in enumerate(barcodes) if item in barcode2label.keys()]
+                    embedding = embedding[select_idx,:] # only evaluated on cells with annotation labels
+                    label_infered = label_infered[select_idx]
+                    uniq_label = list(np.unique(labels_annot))
+                    Y = np.array([uniq_label.index(item) for item in labels_annot])
+                    cluster_eval(Y,label_infered)
+                    save_clustering(label_infered,save='results/%s/scDEC_cluster.txt'%args.data)
+                    save_embedding(embedding,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
+                    plot_embedding(embedding,labels_annot,save='results/%s/scDEC_embedding.png'%args.data)
+                else:
+                    data = np.load('results/%s/data_pre.npz'%args.data)
+                    embedding, label_infered_onehot = data['arr_0'],data['arr_1']
+                    embedding_before_softmax = embedding[:,-label_infered_onehot.shape[1]:]
+                    label_infered = np.argmax(label_infered_onehot, axis=1)
+                    label_true = [item.strip() for item  in open('datasets/%s/label.txt'%args.data).readlines()]
+                    save_clustering(label_infered,save='results/%s/scDEC_cluster.txt'%args.data)
+                    save_embedding(embedding,save='results/%s/scDEC_embedding.csv'%args.data,sep='\t')
+                    plot_embedding(embedding,label_true,save='results/%s/scDEC_embedding.png'%args.data)
         else:
             if args.epoch is None:
                 print('Provide the epoch or batch index to analyze')

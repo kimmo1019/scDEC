@@ -254,6 +254,16 @@ class scDEC(object):
                 np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_,label_y)
             else:
                 np.savez('results/{}/data_pre.npz'.format(self.data),data_x_,data_x_onehot_,label_y)    
+                #generation
+                size = 186
+                bx, _ = self.x_sampler.train(size)
+                bx_onehot = np.zeros((size, self.nb_classes))
+                bx_onehot[:,5] = 1
+                y_pred = self.predict_y(bx,bx_onehot)
+                print('pred shape',y_pred.shape)
+                embeds,_ = self.predict_x(y_pred)
+                np.savez('results/{}/data_impute_{}.npz'.format(self.data,size),embeds,y_pred)    
+
         else:
             if is_train:
                 np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_)
@@ -329,10 +339,11 @@ if __name__ == '__main__':
     parser.add_argument('--alpha', type=float, default=10.0,help='coefficient of loss term')
     parser.add_argument('--beta', type=float, default=10.0,help='coefficient of loss term')
     parser.add_argument('--ratio', type=float, default=0.2,help='parameter in updating Caltegory distribution')
-    parser.add_argument('--low', type=float, default=0.01,help='low ratio for filtering peaks')
+    parser.add_argument('--low', type=float, default=0.03,help='low ratio for filtering peaks')
     parser.add_argument('--timestamp', type=str, default='')
     parser.add_argument('--train', type=bool, default=False,help='whether train from scratch')
     parser.add_argument('--no_label', action='store_true',help='whether the dataset has label')
+    parser.add_argument('--mode', type=int, default=1,help='mode for 10x paired data')
     
     args = parser.parse_args()
     data = args.data
@@ -357,7 +368,11 @@ if __name__ == '__main__':
     pool = util.DataPool(10)
 
     xs = util.Mixture_sampler(nb_classes=nb_classes,N=10000,dim=x_dim,sd=1)
-    ys = util.scATAC_Sampler(data,y_dim,low,has_label)
+    if data == "PBMC10k":
+        mode = args.mode
+        ys = util.ARC_Sampler(name=data,n_components=int(y_dim/2),mode=mode)
+    else:
+        ys = util.scATAC_Sampler(data,y_dim,low,has_label)
 
     model = scDEC(g_net, h_net, dx_net, dy_net, xs, ys, nb_classes, data, pool, batch_size, alpha, beta, is_train)
 

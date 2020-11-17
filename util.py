@@ -1,14 +1,14 @@
 from __future__ import division
-import scipy.sparse
+import scipy.sparse as sp 
 import scipy.io
 import numpy as np
 import copy
-import scipy.special
 from scipy import pi
 import sys
 import pandas as pd
 from os.path import join
 import gzip
+from scipy.io import mmwrite,mmread
 from sklearn.decomposition import PCA,TruncatedSVD
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import pairwise_distances
@@ -64,7 +64,7 @@ def compute_gap(clustering, data, k_max=10, n_references=100):
 
 #scATAC data
 class scATAC_Sampler(object):
-    def __init__(self,name='Forabrain',dim=20,low=0.01,has_label=True):
+    def __init__(self,name,dim=20,low=0.03,has_label=True):
         self.name = name
         self.dim = dim
         self.has_label = has_label
@@ -121,6 +121,91 @@ class scATAC_Sampler(object):
             return self.X, self.Y
         else:
             return self.X 
+
+
+#load data from 10x Genomic paired ARC technology
+class ARC_Sampler(object):
+    def __init__(self,name='PBMC10k',n_components=50,scale=10000,filter_feat=True,filter_cell=False,random_seed=1234,mode=1, \
+        min_rna_c=0,max_rna_c=None,min_atac_c=0,max_atac_c=None):
+        #c:cell, g:gene, l:locus
+        self.name = name
+        self.mode = mode
+        self.min_rna_c = min_rna_c
+        self.max_rna_c = max_rna_c
+        self.min_atac_c = min_atac_c
+        self.max_atac_c = max_atac_c
+
+        self.rna_mat, self.atac_mat, self.genes, self.peaks = self.load_data(filter_feat,filter_cell)
+
+        self.rna_mat = self.rna_mat*scale/self.rna_mat.sum(1)
+        self.rna_mat = np.log10(self.rna_mat+1)
+        self.atac_mat = self.atac_mat*scale/self.atac_mat.sum(1)
+        self.atac_mat = np.log10(self.atac_mat+1)
+
+        self.rna_reducer = PCA(n_components=n_components, random_state=random_seed)
+        self.rna_reducer.fit(self.rna_mat)
+        self.pca_rna_mat = self.rna_reducer.transform(self.rna_mat)
+
+        self.atac_reducer = PCA(n_components=n_components, random_state=random_seed)
+        self.atac_reducer.fit(self.atac_mat)
+        self.pca_atac_mat = self.atac_reducer.transform(self.atac_mat)
+
+    def load_data(self,filter_feat,filter_cell):
+        mtx_file = 'datasets/%s/matrix.mtx'%self.name
+        feat_file = 'datasets/%s/features.tsv'%self.name
+        barcode_file = 'datasets/%s/barcodes.tsv'%self.name
+        combined_mat = mmread(mtx_file).T.tocsr() #(cells, genes+peaks)
+        cells = [item.strip() for item in open(barcode_file).readlines()] 
+        genes = [item.split('\t')[1] for item in open(feat_file).readlines() if item.split('\t')[2]=="Gene Expression"]
+        peaks = [item.split('\t')[1] for item in open(feat_file).readlines() if item.split('\t')[2]=="Peaks"]
+        assert len(genes)+len(peaks) == combined_mat.shape[1]
+        rna_mat = combined_mat[:,:len(genes)]
+        atac_mat = combined_mat[:,len(genes):]
+        print('scRNA-seq: ', rna_mat.shape, 'scATAC-seq: ', atac_mat.shape)
+
+        if filter_feat:
+            rna_mat, atac_mat, genes, peaks = self.filter_feats(rna_mat, atac_mat, genes, peaks)
+            print('scRNA-seq filtered: ', rna_mat.shape, 'scATAC-seq filtered: ', atac_mat.shape)
+        return rna_mat, atac_mat, genes, peaks
+
+    def filter_feats(self, rna_mat_sp, atac_mat_sp, genes, peaks):
+        #filter genes
+        gene_select = np.array((rna_mat_sp>0).sum(axis=0)).squeeze() > self.min_rna_c
+        if self.max_rna_c is not None:
+            gene_select *= np.array((rna_mat_sp>0).sum(axis=0)).squeeze() < self.max_rna_c
+        rna_mat_sp = rna_mat_sp[:,gene_select]
+        genes = np.array(genes)[gene_select]
+        #filter peaks
+        locus_select = np.array((atac_mat_sp>0).sum(axis=0)).squeeze() > self.min_atac_c
+        if self.max_atac_c is not None:
+            locus_select *= np.array((atac_mat_sp>0).sum(axis=0)).squeeze() < self.max_atac_c
+        atac_mat_sp = atac_mat_sp[:,locus_select]
+        peaks = np.array(peaks)[locus_select]
+        return rna_mat_sp, atac_mat_sp, genes, peaks
+
+    def get_batch(self,batch_size):
+        idx = np.random.randint(low = 0, high = self.atac_mat.shape[0], size = batch_size)
+        if self.mode == 1:
+            return self.pca_rna_mat[idx,:]
+        elif self.mode == 2:
+            return self.pca_atac_mat[idx,:]
+        elif self.mode == 3:
+            return np.hstack((self.pca_rna_mat, self.pca_atac_mat))[idx,:]
+        else:
+            print('Wrong mode!')
+            sys.exit()
+    
+    def load_all(self):
+        #mode: 1 only scRNA-seq, 2 only scATAC-seq, 3 both
+        if self.mode == 1:
+            return self.pca_rna_mat
+        elif self.mode == 2:
+            return self.pca_atac_mat
+        elif self.mode == 3:
+            return np.hstack((self.pca_rna_mat, self.pca_atac_mat))
+        else:
+            print('Wrong mode!')
+            sys.exit()
 
 
 #sample continuous (Gaussian) and discrete (Catagory) latent variables together
