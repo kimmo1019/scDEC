@@ -254,16 +254,6 @@ class scDEC(object):
                 np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_,label_y)
             else:
                 np.savez('results/{}/data_pre.npz'.format(self.data),data_x_,data_x_onehot_,label_y)    
-                #generation
-                size = 186
-                bx, _ = self.x_sampler.train(size)
-                bx_onehot = np.zeros((size, self.nb_classes))
-                bx_onehot[:,5] = 1
-                y_pred = self.predict_y(bx,bx_onehot)
-                print('pred shape',y_pred.shape)
-                embeds,_ = self.predict_x(y_pred)
-                np.savez('results/{}/data_impute_{}.npz'.format(self.data,size),embeds,y_pred)    
-
         else:
             if is_train:
                 np.savez('{}/data_at_{}.npz'.format(self.save_dir, batch_idx+1),data_x_,data_x_onehot_)
