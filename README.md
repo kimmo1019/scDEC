@@ -1,5 +1,7 @@
 # scDEC
 
+[![DOI](https://zenodo.org/badge/286327774.svg)](https://zenodo.org/badge/latestdoi/286327774)
+
 ![model](https://github.com/kimmo1019/scDEC/blob/master/model.png)
 
 scDEC is a computational tool for single cell ATAC-seq data analysis with deep generative neural networks. scDEC enables simultaneously learning the deep embedding and clustering of the cells in an unsupervised manner. scDEC is also applicable to multi-modal single cell data. We tested it on the PBMC paired data (scRNA-seq and scATAC-seq) from 10x Genomics (see Tutorials).
