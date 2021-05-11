@@ -9,13 +9,14 @@ scDEC is a computational tool for single cell ATAC-seq data analysis with deep g
 ## Requirements
 - TensorFlow==1.13.1
 - Scikit-learn==0.19.0
+- Python==2.7
 
 ## Installation
 Download scDEC by
 ```shell
 git clone https://github.com/kimmo1019/scDEC
 ```
-Installation has been tested in a Linux platform with Python2.7. GPU card is recommended for accelerating the training process.
+Installation has been tested in a Linux platform with Python2.7. GPU is recommended for accelerating the training process.
 
 ## Instructions
 
