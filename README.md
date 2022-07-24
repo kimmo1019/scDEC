@@ -107,7 +107,7 @@ Then one can run `python eval.py --data Mydataset --timestamp YYYYMMDD_HHMMSS --
  
 ## Contact
 
-Also Feel free to open an issue in Github or contact `liu-q16@mails.tsinghua.edu.cn` if you have any problem in running scDEC.
+Also Feel free to open an issue in Github or contact `liuqiao@stanford.edu` if you have any problem in running scDEC.
 
 ## License
 
