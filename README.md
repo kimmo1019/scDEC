@@ -6,6 +6,10 @@
 
 scDEC is a computational tool for single cell ATAC-seq data analysis with deep generative neural networks. scDEC enables simultaneously learning the deep embedding and clustering of the cells in an unsupervised manner. scDEC is also applicable to multi-modal single cell data. We tested it on the PBMC paired data (scRNA-seq and scATAC-seq) from 10x Genomics (see Tutorials).
 
+## Recent News
+
+An modified version of scDEC won the first place in [NeurIPS 2021 Multimodal Single-Cell Data Integration competition](https://openproblems.bio/neurips_2021/) two Joint Embedding tasks.
+
 ## Requirements
 - TensorFlow==1.13.1
 - Scikit-learn==0.19.0
